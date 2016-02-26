@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+.tick line {
+  opacity: 0.2;
+  stroke-width: 1px;
+  stroke: steelblue;
+}
+</style>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+function randomCommitData(numberOfWeeks, startDate) {
+    var commitDataArray = [];
+    var startDate = new Date(startDate);
+    console.log(startDate);
+    var currentDate = startDate;
+    var lower = 0,
+        upper = 250;
+    for (var i = 1; i <= numberOfWeeks; i++) {
+        var randomValue = Math.floor(Math.random() * (upper - lower +1)) + lower;
+        var year, month, day;
+        year = currentDate.getFullYear();
+        month = ('0' + (currentDate.getMonth()+1)).slice(-2);
+        day = ('0' + (currentDate.getDate())).slice(-2);
+        var dateString = year + "-" + month + "-" + day;
+        commitDataArray.push(
+            {
+                date: dateString,
+                value: randomValue
+            });
+        var dayOfMonth = currentDate.getDate();
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    return commitDataArray;
+}
+
+var randomCommits = randomCommitData(26, "2015-05-31");
+
+var width = 700,
+            height = 500,
+            padding = 100;
+
+        // create an svg container
+        var vis = d3.select("body").
+            append("svg:svg")
+                .attr("width", width)
+                .attr("height", height);
+
+        var commitsMin, commitsMax;
+
+        commitsMin = d3.min(randomCommits, function(d) {
+            return d.value;
+        });
+
+        commitsMax = d3.max(randomCommits, function(d) {
+            return d.value;
+        });
+
+        // define the y scale  (vertical)
+        var yScale = d3.scale.linear()
+	        .domain([commitsMin, commitsMax])    // values between 0 and 100
+		.range([height - padding, padding]);   // map these to the chart height, less padding.
+                 //REMEMBER: y axis range has the bigger number first because the y value of zero is at the top of chart and increases as you go down.
+
+        // define the x scale (horizontal)
+            var mindate = new Date(randomCommits[0].date),
+                maxdate = new Date(randomCommits[randomCommits.length -1].date);
+
+        var xScale = d3.time.scale()
+	        .domain([mindate, maxdate])    // values between for month of january
+		.range([padding, width - padding * 2]);   // map these the the chart width = total width minus padding at both sides
+
+        // define the y axis
+        var yAxis = d3.svg.axis()
+            .orient("left")
+            .scale(yScale)
+            .innerTickSize(-width+padding*3)
+            .outerTickSize(0)
+            .tickPadding(10);
+
+            // Custom tick format for x axis
+
+            var customTickFormat = d3.time.format.multi([
+              [".%L", function(d) { return d.getMilliseconds(); }],
+              [":%S", function(d) { return d.getSeconds(); }],
+              ["%I:%M", function(d) { return d.getMinutes(); }],
+              ["%I %p", function(d) { return d.getHours(); }],
+              ["%a %d", function(d) { return d.getDay() && d.getDate() != 1; }],
+              ["%b %d", function(d) { return d.getDate() != 1; }],
+              ["%b", function(d) { return d.getMonth(); }],
+              ["%Y", function() { return true; }]
+            ]);
+
+        // define the y axis
+        var xAxis = d3.svg.axis()
+            .tickFormat(customTickFormat)
+            .orient("bottom")
+            .scale(xScale);
+
+
+        // line-drawing function
+        var line = d3.svg.line()
+                    // .interpolate("basis")
+                    .x(function(d){
+                        return xScale(new Date(d.date));
+                    })
+                    .y(function(d) {
+                        return yScale(d.value);
+                    })
+
+        // area-drawing function
+
+        var area = d3.svg.area()
+                        .interpolate("basis")
+                        .x(function(d){
+                            return xScale(new Date(d.date));
+                        })
+                        .y0(height - padding)
+                        .y1(function(d) {
+                            return yScale(d.value);
+                        })
+
+
+
+        // draw y axis with labels and move in from the size by the amount of padding
+        vis.append("g")
+            .attr("transform", "translate("+padding+",0)")
+            .attr("class", "yaxis")
+            .call(yAxis);
+
+        // draw x axis with labels and move to the bottom of the chart area
+        vis.append("g")
+            .attr("class", "xaxis")   // give it a class so it can be used to select only xaxis labels  below
+            .attr("transform", "translate(0," + (height - padding) + ")")
+            .call(xAxis);
+
+        // now rotate text on x axis
+        // solution based on idea here: https://groups.google.com/forum/?fromgroups#!topic/d3-js/heOBPQF3sAY
+        // first move the text left so no longer centered on the tick
+        // then rotate up to get 45 degrees.
+       vis.selectAll(".xaxis text")  // select all the text elements for the xaxis
+          .attr("transform", function(d) {
+              return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+        });
+
+        // Append a point for each datapoint
+        vis.selectAll("circle")
+            .data(randomCommits)
+            .enter()
+            .append("circle")
+            .attr("r", 2)
+            .attr("cy", function(d) {
+                return yScale(d.value);
+            })
+            .attr("cx", function(d) {
+                return xScale(new Date(d.date));
+            })
+
+
+        // Append the area
+        // vis.append("path")
+        //     .datum(randomCommits)
+        //     .attr("fill", "blue")
+        //     .attr("d", area);
+
+        // Append the line
+        vis.append("path")
+            .datum(randomCommits)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", "1.5px")
+            .attr("d", line);
+
+
+</script>
