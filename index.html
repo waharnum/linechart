@@ -42,12 +42,6 @@ var width = 700,
             height = 500,
             padding = 100;
 
-        // create an svg container
-        var vis = d3.select("body").
-            append("svg:svg")
-                .attr("width", width)
-                .attr("height", height);
-
         var commitsMin, commitsMax;
 
         commitsMin = d3.min(randomCommits, function(d) {
@@ -110,6 +104,15 @@ var width = 700,
                         return yScale(d.value);
                     })
 
+        var smoothLine = d3.svg.line()
+                    .interpolate("basis")
+                    .x(function(d){
+                        return xScale(new Date(d.date));
+                    })
+                    .y(function(d) {
+                        return yScale(d.value);
+                    })
+
         // area-drawing function
 
         var area = d3.svg.area()
@@ -124,14 +127,26 @@ var width = 700,
 
 
 
+        // create an svg container for commits
+        var commitsGraph = d3.select("body").
+            append("svg:svg")
+                .attr("width", width)
+                .attr("height", height);
+
+        // create an svg container for contribs
+        var contribsGraph = d3.select("body").
+            append("svg:svg")
+                .attr("width", width)
+                .attr("height", height);
+
         // draw y axis with labels and move in from the size by the amount of padding
-        vis.append("g")
+        commitsGraph.append("g")
             .attr("transform", "translate("+padding+",0)")
             .attr("class", "yaxis")
             .call(yAxis);
 
         // draw x axis with labels and move to the bottom of the chart area
-        vis.append("g")
+        commitsGraph.append("g")
             .attr("class", "xaxis")   // give it a class so it can be used to select only xaxis labels  below
             .attr("transform", "translate(0," + (height - padding) + ")")
             .call(xAxis);
@@ -140,13 +155,13 @@ var width = 700,
         // solution based on idea here: https://groups.google.com/forum/?fromgroups#!topic/d3-js/heOBPQF3sAY
         // first move the text left so no longer centered on the tick
         // then rotate up to get 45 degrees.
-       vis.selectAll(".xaxis text")  // select all the text elements for the xaxis
+       commitsGraph.selectAll(".xaxis text")  // select all the text elements for the xaxis
           .attr("transform", function(d) {
               return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
         });
 
         // Append a point for each datapoint
-        vis.selectAll("circle")
+        commitsGraph.selectAll("circle")
             .data(randomCommits)
             .enter()
             .append("circle")
@@ -160,18 +175,66 @@ var width = 700,
 
 
         // Append the area
-        // vis.append("path")
+        // commitsGraph.append("path")
         //     .datum(randomCommits)
         //     .attr("fill", "blue")
         //     .attr("d", area);
 
         // Append the line
-        vis.append("path")
+        commitsGraph.append("path")
             .datum(randomCommits)
             .attr("fill", "none")
             .attr("stroke", "steelblue")
             .attr("stroke-width", "1.5px")
             .attr("d", line);
 
+            // draw y axis with labels and move in from the size by the amount of padding
+            contribsGraph.append("g")
+                .attr("transform", "translate("+padding+",0)")
+                .attr("class", "yaxis")
+                .call(yAxis);
+
+            // draw x axis with labels and move to the bottom of the chart area
+            contribsGraph.append("g")
+                .attr("class", "xaxis")   // give it a class so it can be used to select only xaxis labels  below
+                .attr("transform", "translate(0," + (height - padding) + ")")
+                .call(xAxis);
+
+            // now rotate text on x axis
+            // solution based on idea here: https://groups.google.com/forum/?fromgroups#!topic/d3-js/heOBPQF3sAY
+            // first move the text left so no longer centered on the tick
+            // then rotate up to get 45 degrees.
+            contribsGraph.selectAll(".xaxis text")  // select all the text elements for the xaxis
+              .attr("transform", function(d) {
+                  return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+            });
+
+            // // Append a point for each datapoint
+            // contribsGraph.selectAll("circle")
+            //     .data(randomCommits)
+            //     .enter()
+            //     .append("circle")
+            //     .attr("r", 2)
+            //     .attr("cy", function(d) {
+            //         return yScale(d.value);
+            //     })
+            //     .attr("cx", function(d) {
+            //         return xScale(new Date(d.date));
+            //     })
+
+
+            // Append the area
+            contribsGraph.append("path")
+                .datum(randomCommits)
+                .attr("fill", "blue")
+                .attr("d", area);
+
+            // Append the line
+            contribsGraph.append("path")
+                .datum(randomCommits)
+                .attr("fill", "none")
+                .attr("stroke", "steelblue")
+                .attr("stroke-width", "1.5px")
+                .attr("d", smoothLine);
 
 </script>
